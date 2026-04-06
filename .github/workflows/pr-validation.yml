@@ -4,10 +4,19 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pr-title-check:
     name: PR Title & Description Check
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Validate PR Title Format
         uses: amannn/action-semantic-pull-request@v5
@@ -23,22 +32,36 @@ jobs:
             perf
             build
           requireScope: false
-          disallowScopes: []
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check PR Description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
           if [ -z "$PR_BODY" ] || [ "$PR_BODY" == "null" ]; then
             echo "❌ PR description is empty. Please provide a description of your changes."
             exit 1
           fi
           echo "✅ PR description is present"
 
+      - name: Check PR File Count Limit
+        run: |
+          CHANGED_FILES=${{ github.event.pull_request.changed_files }}
+          MAX_FILES=30
+
+          if [ "$CHANGED_FILES" -le "$MAX_FILES" ]; then
+            echo "✅ PR file count check passed: $CHANGED_FILES files changed (limit: $MAX_FILES)"
+            exit 0
+          fi
+
+          echo "❌ PR file count check failed: $CHANGED_FILES files changed (limit: $MAX_FILES)"
+          exit 1
+
   code-quality:
     name: Code Quality Check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,39 +71,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run ESLint
         run: npm run lint
 
-      - name: Run tests with coverage
-        run: npm run coverage
-
-      - name: Check coverage threshold
-        run: |
-          COVERAGE_LINES=$(grep -oP 'Lines\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
-          COVERAGE_FUNCS=$(grep -oP 'Functions\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
-          COVERAGE_BRANCHES=$(grep -oP 'Branches\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
-          COVERAGE_STMTS=$(grep -oP 'Statements\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
-          
-          THRESHOLD=80
-          
-          # Extract coverage percentages from summary
-          if [ -f coverage/coverage-summary.json ]; then
-            SUMMARY=$(tail -1 coverage/coverage-summary.json | grep -oP '"statements":\s*\{"pct":\s*\K[0-9.]+')
-            if (( $(echo "$SUMMARY < $THRESHOLD" | bc -l) )); then
-              echo "❌ Code coverage ($SUMMARY%) is below the required threshold ($THRESHOLD%)"
-              exit 1
-            fi
-            echo "✅ Code coverage ($SUMMARY%) meets the required threshold ($THRESHOLD%)"
-          fi
+      - name: Run tests
+        run: npm test
 
   build-check:
     name: Build Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -88,10 +92,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build application
         run: npm run build

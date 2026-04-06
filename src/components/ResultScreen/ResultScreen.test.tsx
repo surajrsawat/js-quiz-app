@@ -22,6 +22,9 @@ describe('ResultScreen', () => {
 
     expect(screen.getByText('Perfect!')).toBeInTheDocument();
     expect(screen.getByText('Suraj • Intermediate')).toBeInTheDocument();
+    expect(
+      screen.getByText('Great coverage this run. Keep momentum by trying a higher difficulty mix next.'),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Try Again' }));
     expect(store.getState().phase).toBe('start');
   });
@@ -72,7 +75,7 @@ describe('ResultScreen', () => {
     expect(screen.getByText('Not bad!')).toBeInTheDocument();
   });
 
-  it('renders the keep practising branch with coding review details', () => {
+  it('renders the keep practising branch', () => {
     const store = resetQuizStore([mcq, coding]);
     store.setState({
       ...store.getState(),
@@ -86,12 +89,13 @@ describe('ResultScreen', () => {
     render(<ResultScreen />);
 
     expect(screen.getByText('Keep practising!')).toBeInTheDocument();
-    expect(screen.getByText('Coding')).toBeInTheDocument();
-    expect(screen.getByText('Expected answer')).toBeInTheDocument();
-    expect(screen.getByText('Missed it')).toBeInTheDocument();
+    expect(screen.getByText('Weak Areas Dashboard')).toBeInTheDocument();
+    expect(screen.getByText(/Next focus:/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Review Answers' })).toBeInTheDocument();
   });
 
-  it('renders the successful coding review branch', () => {
+  it('opens review mode from result screen', async () => {
+    const user = userEvent.setup();
     const store = resetQuizStore([coding]);
     store.setState({
       ...store.getState(),
@@ -108,8 +112,8 @@ describe('ResultScreen', () => {
 
     render(<ResultScreen />);
 
-    expect(screen.getByText('Perfect!')).toBeInTheDocument();
-    expect(screen.getByText('Got it')).toBeInTheDocument();
-    expect(screen.getByText('Your code')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Review Answers' }));
+
+    expect(store.getState().phase).toBe('review');
   });
 });

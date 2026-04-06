@@ -1,6 +1,8 @@
-import type { QuizQuestion } from '@quiz-types/quiz';
+import type { CodingQuestion, McqQuestion, QuizQuestion, QuizTopic } from '@quiz-types/quiz';
 
-const questions: QuizQuestion[] = [
+type RawQuestion = Omit<McqQuestion, 'topic'> | Omit<CodingQuestion, 'topic'>;
+
+const rawQuestions: RawQuestion[] = [
   // MCQ Questions
   {
     id: 1,
@@ -905,6 +907,31 @@ const questions: QuizQuestion[] = [
     explanation: 'Reference solution for retry.',
   },
 ];
+
+const resolveTopic = (questionId: number): QuizTopic => {
+  if (questionId <= 20) {
+    return 'JavaScript Basics';
+  }
+
+  if (questionId <= 40) {
+    return 'Language Mechanics';
+  }
+
+  if (questionId <= 60) {
+    return 'Advanced JavaScript';
+  }
+
+  if (questionId <= 80) {
+    return 'Data Structures';
+  }
+
+  return 'Algorithms';
+};
+
+const questions: QuizQuestion[] = rawQuestions.map((question) => ({
+  ...question,
+  topic: resolveTopic(question.id),
+}));
 
 const normalizeQuestion = (text: string) =>
   text.trim().toLowerCase().replace(/\s+/g, ' ');

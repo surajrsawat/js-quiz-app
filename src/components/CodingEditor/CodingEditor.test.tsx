@@ -4,7 +4,7 @@ import CodingEditor from './CodingEditor';
 import { buildCodingQuestion, resetQuizStore } from '@test/test-utils';
 
 describe('CodingEditor', () => {
-  it('submits code, reveals the answer, and advances after a correct self-check', async () => {
+  it('auto-evaluates matching code and advances without manual self-check', async () => {
     const user = userEvent.setup();
     const question = buildCodingQuestion();
     const store = resetQuizStore([question, buildCodingQuestion({ id: 202 })]);
@@ -18,9 +18,7 @@ describe('CodingEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Submit and See Answer' }));
 
     expect(screen.getByText('Expected Answer')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Got it' }));
-
+    expect(screen.getByText(/Auto-evaluated: exact match/i)).toBeInTheDocument();
     expect(store.getState().selfMarked).toBe(true);
     expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
 
@@ -29,7 +27,7 @@ describe('CodingEditor', () => {
     expect(store.getState().currentIndex).toBe(1);
   });
 
-  it('shows the results CTA after an incorrect self-check on the last question', async () => {
+  it('falls back to manual self-check when auto-evaluation is inconclusive', async () => {
     const user = userEvent.setup();
     const question = buildCodingQuestion({ starterCode: undefined });
     const store = resetQuizStore([question]);
@@ -38,6 +36,8 @@ describe('CodingEditor', () => {
     render(<CodingEditor question={question} />);
 
     await user.click(screen.getByRole('button', { name: 'Submit and See Answer' }));
+    expect(screen.getByText(/No confident auto-match found/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Got it' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Missed it' }));
 
     expect(store.getState().answers[0]).toMatchObject({ correct: false, type: 'coding' });

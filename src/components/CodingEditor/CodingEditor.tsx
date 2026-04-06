@@ -1,5 +1,8 @@
 import useQuizStore from '@store/useQuizStore/useQuizStore';
-import type { CodingQuestion as CodingQuestionType } from '@quiz-types/quiz';
+import type {
+  CodingAnswerRecord,
+  CodingQuestion as CodingQuestionType,
+} from '@quiz-types/quiz';
 
 interface CodingEditorProps {
   question: CodingQuestionType;
@@ -9,6 +12,8 @@ function CodingEditor({ question }: Readonly<CodingEditorProps>) {
   const userCode = useQuizStore((state) => state.userCode);
   const codeSubmitted = useQuizStore((state) => state.codeSubmitted);
   const selfMarked = useQuizStore((state) => state.selfMarked);
+  const codingEvaluationFeedback = useQuizStore((state) => state.codingEvaluationFeedback);
+  const answers = useQuizStore((state) => state.answers);
   const setUserCode = useQuizStore((state) => state.setUserCode);
   const submitCode = useQuizStore((state) => state.submitCode);
   const markSelf = useQuizStore((state) => state.markSelf);
@@ -16,6 +21,17 @@ function CodingEditor({ question }: Readonly<CodingEditorProps>) {
   const currentIndex = useQuizStore((state) => state.currentIndex);
   const questionCount = useQuizStore((state) => state.questions.length);
   const isLast = currentIndex === questionCount - 1;
+  const currentCodingAnswer = answers.find(
+    (answer): answer is CodingAnswerRecord =>
+      answer.questionId === question.id && answer.type === 'coding',
+  );
+  const isAutoEvaluated = currentCodingAnswer?.evaluationMode === 'auto';
+  let resultLabel = 'Marked as incorrect';
+  if (isAutoEvaluated) {
+    resultLabel = 'Auto-evaluated as correct';
+  } else if (selfMarked) {
+    resultLabel = 'Marked as correct';
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -73,6 +89,12 @@ function CodingEditor({ question }: Readonly<CodingEditorProps>) {
             </p>
           )}
 
+          {codingEvaluationFeedback && (
+            <p className="text-sm text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3">
+              {codingEvaluationFeedback}
+            </p>
+          )}
+
           {selfMarked === null ? (
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-500 font-medium">How did you do?</span>
@@ -98,7 +120,7 @@ function CodingEditor({ question }: Readonly<CodingEditorProps>) {
                   selfMarked ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
                 }`}
               >
-                {selfMarked ? 'Marked as correct' : 'Marked as incorrect'}
+                {resultLabel}
               </span>
               <button
                 type="button"
