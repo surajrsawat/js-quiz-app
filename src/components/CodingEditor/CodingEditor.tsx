@@ -1,5 +1,8 @@
 import useQuizStore from '@store/useQuizStore/useQuizStore';
-import type { CodingQuestion as CodingQuestionType } from '@quiz-types/quiz';
+import type {
+  CodingAnswerRecord,
+  CodingQuestion as CodingQuestionType,
+} from '@quiz-types/quiz';
 
 interface CodingEditorProps {
   question: CodingQuestionType;
@@ -19,7 +22,8 @@ function CodingEditor({ question }: Readonly<CodingEditorProps>) {
   const questionCount = useQuizStore((state) => state.questions.length);
   const isLast = currentIndex === questionCount - 1;
   const currentCodingAnswer = answers.find(
-    (answer) => answer.questionId === question.id && answer.type === 'coding',
+    (answer): answer is CodingAnswerRecord =>
+      answer.questionId === question.id && answer.type === 'coding',
   );
   const isAutoEvaluated = currentCodingAnswer?.evaluationMode === 'auto';
   let resultLabel = 'Marked as incorrect';
