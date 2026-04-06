@@ -4,10 +4,19 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pr-title-check:
     name: PR Title & Description Check
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Validate PR Title Format
         uses: amannn/action-semantic-pull-request@v5
@@ -23,7 +32,6 @@ jobs:
             perf
             build
           requireScope: false
-          disallowScopes: []
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -36,9 +44,23 @@ jobs:
           fi
           echo "✅ PR description is present"
 
+      - name: Check PR File Count Limit
+        run: |
+          CHANGED_FILES=${{ github.event.pull_request.changed_files }}
+          MAX_FILES=30
+
+          if [ "$CHANGED_FILES" -le "$MAX_FILES" ]; then
+            echo "✅ PR file count check passed: $CHANGED_FILES files changed (limit: $MAX_FILES)"
+            exit 0
+          fi
+
+          echo "❌ PR file count check failed: $CHANGED_FILES files changed (limit: $MAX_FILES)"
+          exit 1
+
   code-quality:
     name: Code Quality Check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,26 +83,12 @@ jobs:
 
       - name: Check coverage threshold
         run: |
-          COVERAGE_LINES=$(grep -oP 'Lines\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
-          COVERAGE_FUNCS=$(grep -oP 'Functions\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
-          COVERAGE_BRANCHES=$(grep -oP 'Branches\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
-          COVERAGE_STMTS=$(grep -oP 'Statements\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
-          
-          THRESHOLD=80
-          
-          # Extract coverage percentages from summary
-          if [ -f coverage/coverage-summary.json ]; then
-            SUMMARY=$(tail -1 coverage/coverage-summary.json | grep -oP '"statements":\s*\{"pct":\s*\K[0-9.]+')
-            if (( $(echo "$SUMMARY < $THRESHOLD" | bc -l) )); then
-              echo "❌ Code coverage ($SUMMARY%) is below the required threshold ($THRESHOLD%)"
-              exit 1
-            fi
-            echo "✅ Code coverage ($SUMMARY%) meets the required threshold ($THRESHOLD%)"
-          fi
+          node -e "const fs=require('fs'); const threshold=80; const file='coverage/coverage-summary.json'; if(!fs.existsSync(file)){console.log('Coverage summary missing, skipping threshold check.'); process.exit(0);} const summary=JSON.parse(fs.readFileSync(file,'utf8')); const pct=Number(summary?.total?.statements?.pct ?? 0); if (Number.isNaN(pct)){console.error('Invalid coverage summary format.'); process.exit(1);} if (pct < threshold){console.error('Code coverage (' + pct + '%) is below the required threshold (' + threshold + '%)'); process.exit(1);} console.log('Code coverage (' + pct + '%) meets the required threshold (' + threshold + '%)');"
 
   build-check:
     name: Build Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 

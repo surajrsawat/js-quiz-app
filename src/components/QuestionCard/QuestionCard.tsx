@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import CodingEditor from '@components/CodingEditor/CodingEditor';
 import McqQuestion from '@components/McqQuestion/McqQuestion';
 import useQuizStore from '@store/useQuizStore/useQuizStore';
@@ -5,8 +6,24 @@ import useQuizStore from '@store/useQuizStore/useQuizStore';
 function QuestionCard() {
   const questions = useQuizStore((state) => state.questions);
   const currentIndex = useQuizStore((state) => state.currentIndex);
+  const timeRemainingSec = useQuizStore((state) => state.timeRemainingSec);
+  const currentStreak = useQuizStore((state) => state.currentStreak);
+  const sessionXp = useQuizStore((state) => state.sessionXp);
+  const tickTimer = useQuizStore((state) => state.tickTimer);
   const current = questions[currentIndex];
   const progress = ((currentIndex + 1) / questions.length) * 100;
+  const minutes = Math.floor(timeRemainingSec / 60);
+  const seconds = timeRemainingSec % 60;
+
+  useEffect(() => {
+    const interval = globalThis.setInterval(() => {
+      tickTimer();
+    }, 1000);
+
+    return () => {
+      globalThis.clearInterval(interval);
+    };
+  }, [tickTimer]);
 
   const typeLabel =
     current.type === 'coding'
@@ -29,6 +46,13 @@ function QuestionCard() {
           </span>
           <div className="flex items-center gap-2">
             <span
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                timeRemainingSec <= 10 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'
+              }`}
+            >
+              {minutes}:{seconds.toString().padStart(2, '0')}
+            </span>
+            <span
               className={`text-xs font-semibold px-2 py-0.5 rounded-full ${difficultyLabel.cls}`}
             >
               {difficultyLabel.text}
@@ -38,6 +62,14 @@ function QuestionCard() {
             </span>
             <span>{Math.round(progress)}%</span>
           </div>
+        </div>
+        <div className="flex justify-end gap-2 text-xs">
+          <span className="font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+            Streak: {currentStreak}
+          </span>
+          <span className="font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+            XP: {sessionXp}
+          </span>
         </div>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progress}%` }} />

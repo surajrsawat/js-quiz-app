@@ -16,6 +16,8 @@ describe('questions data', () => {
       } else {
         expect(question.expectedAnswer.length).toBeGreaterThan(0);
       }
+
+      expect(question.topic).toBeTruthy();
     });
   });
 });

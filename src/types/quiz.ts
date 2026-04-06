@@ -1,10 +1,19 @@
-export type QuizPhase = 'start' | 'quiz' | 'result';
+export type QuizPhase = 'start' | 'quiz' | 'result' | 'review';
 export type ExperienceLevel = 'Beginner' | 'Intermediate' | 'Expert';
+export type Difficulty = 'Easy' | 'Medium' | 'High';
+export type AdaptiveProfile = 'steady' | 'challenge' | 'support';
+export type QuizTopic =
+  | 'JavaScript Basics'
+  | 'Language Mechanics'
+  | 'Advanced JavaScript'
+  | 'Data Structures'
+  | 'Algorithms';
 
 export interface BaseQuestion {
   id: number;
   question: string;
-  difficulty: 'Easy' | 'Medium' | 'High';
+  difficulty: Difficulty;
+  topic: QuizTopic;
   explanation?: string;
 }
 
@@ -21,12 +30,14 @@ export interface CodingQuestion extends BaseQuestion {
 }
 
 export type QuizQuestion = McqQuestion | CodingQuestion;
+export type QuestionKind = QuizQuestion['type'];
 
 export interface McqAnswerRecord {
   questionId: number;
   type: 'mcq';
-  selected: string;
+  selected: string | null;
   correct: boolean;
+  timedOut?: boolean;
 }
 
 export interface CodingAnswerRecord {
@@ -34,6 +45,22 @@ export interface CodingAnswerRecord {
   type: 'coding';
   userCode: string;
   correct: boolean;
+  evaluationMode?: 'auto' | 'manual';
+  timedOut?: boolean;
 }
 
 export type QuizAnswerRecord = McqAnswerRecord | CodingAnswerRecord;
+
+export interface WeakAreaEntry<T extends string> {
+  key: T;
+  wrongCount: number;
+  totalCount: number;
+  accuracyPct: number;
+}
+
+export interface WeakAreasSummary {
+  byTopic: WeakAreaEntry<QuizTopic>[];
+  byType: WeakAreaEntry<QuestionKind>[];
+  byDifficulty: WeakAreaEntry<Difficulty>[];
+  recommendation: string;
+}
