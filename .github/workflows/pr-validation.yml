@@ -1,0 +1,105 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pr-title-check:
+    name: PR Title & Description Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR Title Format
+        uses: amannn/action-semantic-pull-request@v5
+        with:
+          types: |
+            feat
+            fix
+            docs
+            refactor
+            test
+            chore
+            ci
+            perf
+            build
+          requireScope: false
+          disallowScopes: []
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check PR Description
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+          if [ -z "$PR_BODY" ] || [ "$PR_BODY" == "null" ]; then
+            echo "❌ PR description is empty. Please provide a description of your changes."
+            exit 1
+          fi
+          echo "✅ PR description is present"
+
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run tests with coverage
+        run: npm run coverage
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE_LINES=$(grep -oP 'Lines\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
+          COVERAGE_FUNCS=$(grep -oP 'Functions\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
+          COVERAGE_BRANCHES=$(grep -oP 'Branches\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
+          COVERAGE_STMTS=$(grep -oP 'Statements\s*:\s*\K[0-9.]+' coverage/coverage-summary.json || echo "0")
+          
+          THRESHOLD=80
+          
+          # Extract coverage percentages from summary
+          if [ -f coverage/coverage-summary.json ]; then
+            SUMMARY=$(tail -1 coverage/coverage-summary.json | grep -oP '"statements":\s*\{"pct":\s*\K[0-9.]+')
+            if (( $(echo "$SUMMARY < $THRESHOLD" | bc -l) )); then
+              echo "❌ Code coverage ($SUMMARY%) is below the required threshold ($THRESHOLD%)"
+              exit 1
+            fi
+            echo "✅ Code coverage ($SUMMARY%) meets the required threshold ($THRESHOLD%)"
+          fi
+
+  build-check:
+    name: Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "❌ Build failed: dist directory not created"
+            exit 1
+          fi
+          echo "✅ Build successful"

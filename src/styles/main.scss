@@ -1,0 +1,135 @@
+@use "sass:color";
+
+// Global SCSS variables and base styles
+// Tailwind handles utilities; use SCSS for component-level overrides.
+
+$primary: #6366f1;
+$primary-dark: #4f46e5;
+$correct: #22c55e;
+$incorrect: #ef4444;
+$neutral: #e5e7eb;
+$card-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+// ── Quiz Card ──────────────────────────────────────────
+.quiz-card {
+  box-shadow: $card-shadow;
+  border-radius: 1rem;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  }
+}
+
+// ── Option Button ──────────────────────────────────────
+.option-btn {
+  transition: background-color 0.18s ease, border-color 0.18s ease,
+    transform 0.12s ease;
+  border: 2px solid $neutral;
+  border-radius: 0.75rem;
+
+  &:hover:not(:disabled) {
+    border-color: $primary;
+    transform: translateY(-1px);
+  }
+
+  &.correct {
+    background-color: color.adjust($correct, $lightness: 42%);
+    border-color: $correct;
+    color: color.adjust($correct, $lightness: -15%);
+  }
+
+  &.incorrect {
+    background-color: color.adjust($incorrect, $lightness: 38%);
+    border-color: $incorrect;
+    color: color.adjust($incorrect, $lightness: -10%);
+  }
+}
+
+// ── Progress Bar ───────────────────────────────────────
+.progress-bar {
+  height: 6px;
+  border-radius: 9999px;
+  background: $neutral;
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, $primary, $primary-dark);
+    transition: width 0.35s ease;
+  }
+}
+
+// ── Code Editor ────────────────────────────────────────
+.code-editor-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #1e1e2e;
+
+  .code-editor-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #2a2a3e;
+    border-bottom: 1px solid #3a3a50;
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .code-editor-label {
+      margin-left: auto;
+      font-size: 11px;
+      color: #9ca3af;
+      font-family: monospace;
+    }
+  }
+
+  .code-editor {
+    display: block;
+    width: 100%;
+    background: #1e1e2e;
+    color: #e2e8f0;
+    font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 16px;
+    resize: vertical;
+    border: none;
+    outline: none;
+    tab-size: 2;
+    white-space: pre;
+    overflow-x: auto;
+    box-sizing: border-box;
+
+    &::placeholder {
+      color: #4a5568;
+    }
+
+    &:disabled {
+      opacity: 0.85;
+      cursor: not-allowed;
+    }
+
+    &--readonly {
+      resize: none;
+      cursor: default;
+      color: #86efac; // soft green for expected answer
+    }
+  }
+}
+
+// ── Result Score Badge ─────────────────────────────────
+.score-badge {
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(135deg, $primary, $primary-dark);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

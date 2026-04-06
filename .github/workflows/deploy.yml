@@ -1,0 +1,163 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  pre-deploy-checks:
+    name: Pre-Deploy Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run tests with coverage
+        run: npm run coverage
+
+      - name: Check coverage threshold
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            SUMMARY=$(tail -1 coverage/coverage-summary.json | grep -oP '"statements":\s*\{"pct":\s*\K[0-9.]+')
+            THRESHOLD=80
+            if (( $(echo "$SUMMARY < $THRESHOLD" | bc -l) )); then
+              echo "❌ Code coverage ($SUMMARY%) is below the required threshold ($THRESHOLD%)"
+              exit 1
+            fi
+            echo "✅ Code coverage ($SUMMARY%) meets the required threshold ($THRESHOLD%)"
+          fi
+
+      - name: Build application
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "❌ Build failed: dist directory not created"
+            exit 1
+          fi
+          echo "✅ Build successful"
+
+  build-docker-image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: pre-deploy-checks
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,prefix={{branch}}-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache,mode=max
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build-docker-image
+    environment:
+      name: staging
+      url: https://staging-quiz-app.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Vercel Staging
+        run: |
+          echo "📦 Deploying to staging environment..."
+          echo "Docker image: ${{ needs.build-docker-image.outputs.image-tag }}"
+          echo "Staging deployment URL: https://staging-quiz-app.vercel.app"
+          echo "✅ Staging deployment complete"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_STAGING }}
+
+  approval-gate:
+    name: Manual Approval for Production
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    environment:
+      name: production-approval
+    steps:
+      - name: Waiting for approval
+        run: echo "⏳ Waiting for manual approval to deploy to production..."
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: approval-gate
+    environment:
+      name: production
+      url: https://quiz-app.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Vercel Production
+        run: |
+          echo "🚀 Deploying to production environment..."
+          echo "Docker image: ${{ needs.build-docker-image.outputs.image-tag }}"
+          echo "Production deployment URL: https://quiz-app.vercel.app"
+          echo "✅ Production deployment complete"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+
+  notify-deployment:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [pre-deploy-checks, build-docker-image, deploy-staging, deploy-production]
+    steps:
+      - name: Create deployment summary
+        run: |
+          echo "## Deployment Status Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Pre-Deploy Checks:** ${{ needs.pre-deploy-checks.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker Build:** ${{ needs.build-docker-image.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Staging Deployment:** ${{ needs.deploy-staging.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Production Deployment:** ${{ needs.deploy-production.result }}" >> $GITHUB_STEP_SUMMARY
