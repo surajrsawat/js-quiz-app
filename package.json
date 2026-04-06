@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "precoverage": "mkdir -p coverage/.tmp",
     "coverage": "vitest run --coverage"
   },
   "dependencies": {

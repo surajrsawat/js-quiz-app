@@ -37,7 +37,7 @@ jobs:
 
       - name: Check coverage threshold
         run: |
-          node -e "const fs=require('fs'); const threshold=80; const file='coverage/coverage-summary.json'; if(!fs.existsSync(file)){console.log('Coverage summary missing, skipping threshold check.'); process.exit(0);} const summary=JSON.parse(fs.readFileSync(file,'utf8')); const pct=Number(summary?.total?.statements?.pct ?? 0); if (Number.isNaN(pct)){console.error('Invalid coverage summary format.'); process.exit(1);} if (pct < threshold){console.error('Code coverage (' + pct + '%) is below the required threshold (' + threshold + '%)'); process.exit(1);} console.log('Code coverage (' + pct + '%) meets the required threshold (' + threshold + '%)');"
+          node -e "const fs=require('fs'); const threshold=90; const file='coverage/coverage-summary.json'; if(!fs.existsSync(file)){console.log('Coverage summary missing, skipping threshold check.'); process.exit(0);} const summary=JSON.parse(fs.readFileSync(file,'utf8')); const pct=Number(summary?.total?.statements?.pct ?? 0); if (Number.isNaN(pct)){console.error('Invalid coverage summary format.'); process.exit(1);} if (pct < threshold){console.error('Code coverage (' + pct + '%) is below the required threshold (' + threshold + '%)'); process.exit(1);} console.log('Code coverage (' + pct + '%) meets the required threshold (' + threshold + '%)');"
 
       - name: Build application
         run: npm run build
