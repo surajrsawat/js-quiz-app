@@ -934,7 +934,7 @@ const questions: QuizQuestion[] = rawQuestions.map((question) => ({
 }));
 
 const normalizeQuestion = (text: string) =>
-  text.trim().toLowerCase().replace(/\s+/g, ' ');
+  text.trim().toLowerCase().replaceAll(/\s+/g, ' ');
 
 const ids = new Set<number>();
 const normalizedQuestions = new Set<string>();
