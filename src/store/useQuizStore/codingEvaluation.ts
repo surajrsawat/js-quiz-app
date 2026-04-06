@@ -12,18 +12,18 @@ export type CodingAutoEvaluationResult = AutoEvaluationPass | AutoEvaluationFall
 
 const normalizeWhitespace = (value: string): string =>
   value
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/.*$/gm, '')
-    .replace(/\s+/g, '')
-    .replace(/;+/g, ';')
+    .replaceAll(/\/\*[\s\S]*?\*\//g, '')
+    .replaceAll(/\/\/.*$/gm, '')
+    .replaceAll(/\s+/g, '')
+    .replaceAll(/;+/g, ';')
     .trim();
 
 const stripTypeAnnotations = (code: string): string =>
   code
-    .replace(/\b(?:interface|type)\b[\s\S]*?(?:\n\}|;)/g, '')
-    .replace(/\s+as\s+[A-Za-z_$][A-Za-z0-9_$<>\s[\]|&?]*/g, '')
-    .replace(/<\s*[A-Za-z_$][A-Za-z0-9_$,\s]*\s*>\s*(?=\()/g, '')
-    .replace(/:\s*[A-Za-z_$][A-Za-z0-9_$<>\s[\]|&?]*/g, '');
+    .replaceAll(/\b(?:interface|type)\b[\s\S]*?(?:\n\}|;)/g, '')
+    .replaceAll(/\s+as\s+[A-Za-z_$][A-Za-z0-9_$<>\s[\]|&?]*/g, '')
+    .replaceAll(/<\s*[A-Za-z_$][A-Za-z0-9_$,\s]*\s*>\s*(?=\()/g, '')
+    .replaceAll(/:\s*[A-Za-z_$][A-Za-z0-9_$<>\s[\]|&?]*/g, '');
 
 const hasTypeScriptSyntax = (code: string): boolean => {
   const tsMarkers = [
