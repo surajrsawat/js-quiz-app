@@ -160,9 +160,11 @@ jobs:
     steps:
       - name: Create deployment summary
         run: |
-          echo "## Deployment Status Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Pre-Deploy Checks:** ${{ needs.pre-deploy-checks.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Docker Build:** ${{ needs.build-docker-image.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Staging Deployment:** ${{ needs.deploy-staging.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Production Deployment:** ${{ needs.deploy-production.result }}" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Deployment Status Summary"
+            echo ""
+            echo "- **Pre-Deploy Checks:** ${{ needs.pre-deploy-checks.result }}"
+            echo "- **Docker Build:** ${{ needs.build-docker-image.result }}"
+            echo "- **Staging Deployment:** ${{ needs.deploy-staging.result }}"
+            echo "- **Production Deployment:** ${{ needs.deploy-production.result }}"
+          } >> "$GITHUB_STEP_SUMMARY"
