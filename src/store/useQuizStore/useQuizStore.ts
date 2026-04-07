@@ -954,10 +954,7 @@ export const createQuizStore = (
         lastSessionOrder: restoredQuestions.map((question) => question.id),
         currentIndex: boundedIndex,
         questionTimeLimitSec: resumeSessionSnapshot.questionTimeLimitSec,
-        timeRemainingSec: Math.max(
-          1,
-          Math.min(resumeSessionSnapshot.timeRemainingSec, resumeSessionSnapshot.questionTimeLimitSec),
-        ),
+        timeRemainingSec: resumeSessionSnapshot.questionTimeLimitSec,
         selectedAnswer: resumeSessionSnapshot.selectedAnswer,
         userCode: resumeSessionSnapshot.userCode,
         codeSubmitted: resumeSessionSnapshot.codeSubmitted,

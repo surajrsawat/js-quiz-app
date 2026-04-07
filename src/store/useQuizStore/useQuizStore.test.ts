@@ -256,7 +256,7 @@ describe('useQuizStore', () => {
     expect(store.getState().phase).toBe('quiz');
     expect(store.getState().questions.map((question) => question.id)).toEqual([101, 201]);
     expect(store.getState().currentIndex).toBe(1);
-    expect(store.getState().timeRemainingSec).toBe(35);
+    expect(store.getState().timeRemainingSec).toBe(90);
     expect(store.getState().sessionXp).toBe(72);
     expect(store.getState().totalXp).toBe(220);
     expect(store.getState().resumeSessionSnapshot).toBeNull();
