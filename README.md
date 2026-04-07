@@ -2,7 +2,7 @@
 
 A fast-paced, feature-rich JavaScript quiz application built with React and TypeScript. Test your JS knowledge across multiple topics and difficulty levels, track your progress with XP and streaks, and challenge yourself with the daily quiz.
 
-🔗 **[Live Production App → https://quiz-app.vercel.app](https://quiz-app.vercel.app)**
+🔗 **[Live Production App → https://js-quiz-app-peach-mu.vercel.app/](https://js-quiz-app-peach-mu.vercel.app/)**
 
 ---
 
